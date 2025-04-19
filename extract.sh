@@ -2,15 +2,16 @@
 
 INPUT_FILE="./messages.txt"
 OUTPUT_FILE="clients.csv"
+TEMP_FILE="clients_unfiltered.csv"
 
 # Create output file with header if it doesn't exist
 if [ ! -f "$OUTPUT_FILE" ]; then
     echo "FirstName,SecondName,Phone" > "$OUTPUT_FILE"
 fi
 
-# Only process payments sent to JOSSNADGENERALMERCHANTS
+# Only look at lines sent to JOSSNADGENERALMERCHANTS
 grep -i "to JOSSNADGENERALMERCHANTS" "$INPUT_FILE" | while read -r line; do
-    # Extract full name
+    # Extract full name and phone
     full_name=$(echo "$line" | grep -oP 'by \K[A-Z ]+(?= Phone)' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')
     phone=$(echo "$line" | grep -oP 'Phone \K[0-9]+')
 
@@ -23,4 +24,8 @@ grep -i "to JOSSNADGENERALMERCHANTS" "$INPUT_FILE" | while read -r line; do
     fi
 done
 
-echo "Done. Extracted and saved to $OUTPUT_FILE"
+# Remove duplicates while preserving header
+{ head -n 1 "$OUTPUT_FILE"; tail -n +2 "$OUTPUT_FILE" | sort | uniq; } > "$TEMP_FILE"
+mv "$TEMP_FILE" "$OUTPUT_FILE"
+
+echo "Extracted and saved to $OUTPUT_FILE"
