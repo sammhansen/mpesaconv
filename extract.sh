@@ -3,22 +3,24 @@
 INPUT_FILE="./messages.txt"
 OUTPUT_FILE="clients.csv"
 
-# add CSV header if the file doesn't exist
+# Create output file with header if it doesn't exist
 if [ ! -f "$OUTPUT_FILE" ]; then
-    echo "Name,Phone" > "$OUTPUT_FILE"
+    echo "FirstName,SecondName,Phone" > "$OUTPUT_FILE"
 fi
 
-# process each line
-while IFS= read -r line; do
-    # extract the part with "by NAME Phone NUMBER"
-    match=$(echo "$line" | grep -oP 'by \K[A-Z ]+(?= Phone [0-9]+)')
+# Only process payments sent to JOSSNADGENERALMERCHANTS
+grep -i "to JOSSNADGENERALMERCHANTS" "$INPUT_FILE" | while read -r line; do
+    # Extract full name
+    full_name=$(echo "$line" | grep -oP 'by \K[A-Z ]+(?= Phone)' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')
     phone=$(echo "$line" | grep -oP 'Phone \K[0-9]+')
 
-    if [[ -n "$match" && -n "$phone" ]]; then
-        name=$(echo "$match" | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')  # trim spaces
-        echo "$name,$phone" >> "$OUTPUT_FILE"
+    # Break into first and second name
+    first_name=$(echo "$full_name" | awk '{print $1}')
+    second_name=$(echo "$full_name" | awk '{print $2}')
+
+    if [[ -n "$first_name" && -n "$second_name" && -n "$phone" ]]; then
+        echo "$first_name,$second_name,$phone" >> "$OUTPUT_FILE"
     fi
-done < "$INPUT_FILE"
+done
 
-echo "Done. Extracted data saved to $OUTPUT_FILE"
-
+echo "Done. Extracted and saved to $OUTPUT_FILE"
